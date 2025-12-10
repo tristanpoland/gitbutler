@@ -1,4 +1,5 @@
 use anyhow::Result;
+use but_rebase::graph_rebase::GraphExt as _;
 use but_rebase::graph_rebase::mutate::InsertSide;
 use but_testsupport::{assure_stable_env, visualize_commit_graph_all};
 use but_workspace::commit::insert_blank_commit;
@@ -20,12 +21,10 @@ fn insert_below_commit() -> Result<()> {
     let head_tree = repo.head_tree_id()?;
     let id = repo.rev_parse_single("two")?;
 
-    insert_blank_commit(
-        &graph,
-        &repo,
-        InsertSide::Below,
-        RelativeTo::Commit(id.detach()),
-    )?;
+    let editor = graph.to_editor(&repo)?;
+    insert_blank_commit(editor, InsertSide::Below, RelativeTo::Commit(id.detach()))?
+        .0
+        .materialize()?;
 
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * 31dbfdc (HEAD -> three) commit three
@@ -55,12 +54,10 @@ fn insert_above_commit() -> Result<()> {
     let head_tree = repo.head_tree_id()?;
     let id = repo.rev_parse_single("two")?;
 
-    insert_blank_commit(
-        &graph,
-        &repo,
-        InsertSide::Above,
-        RelativeTo::Commit(id.detach()),
-    )?;
+    let editor = graph.to_editor(&repo)?;
+    insert_blank_commit(editor, InsertSide::Above, RelativeTo::Commit(id.detach()))?
+        .0
+        .materialize()?;
 
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * 923c9cd (HEAD -> three) commit three
@@ -88,12 +85,14 @@ fn insert_below_reference() -> Result<()> {
     let head_tree = repo.head_tree_id()?;
     let reference = repo.find_reference("two")?;
 
+    let editor = graph.to_editor(&repo)?;
     insert_blank_commit(
-        &graph,
-        &repo,
+        editor,
         InsertSide::Below,
         RelativeTo::Reference(reference.name()),
-    )?;
+    )?
+    .0
+    .materialize()?;
 
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * 923c9cd (HEAD -> three) commit three
@@ -121,12 +120,14 @@ fn insert_above_reference() -> Result<()> {
     let head_tree = repo.head_tree_id()?;
     let reference = repo.find_reference("two")?;
 
+    let editor = graph.to_editor(&repo)?;
     insert_blank_commit(
-        &graph,
-        &repo,
+        editor,
         InsertSide::Above,
         RelativeTo::Reference(reference.name()),
-    )?;
+    )?
+    .0
+    .materialize()?;
 
     insta::assert_snapshot!(visualize_commit_graph_all(&repo)?, @r"
     * 923c9cd (HEAD -> three) commit three

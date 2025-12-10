@@ -24,35 +24,29 @@ pub(crate) mod function {
     use anyhow::Result;
     use but_rebase::{
         commit::DateMode,
-        graph_rebase::{GraphExt, Step, mutate::InsertSide},
+        graph_rebase::{Editor, Selector, Step, mutate::InsertSide, rebase::SuccessfulRebase},
     };
 
-    use crate::commit::insert_blank_commit::{InsertCommitOutcome, RelativeTo};
+    use crate::commit::insert_blank_commit::RelativeTo;
 
     /// Inserts a blank commit relative to either a reference or a commit
     pub fn insert_blank_commit(
-        graph: &but_graph::Graph,
-        repo: &gix::Repository,
+        mut editor: Editor,
         side: InsertSide,
         relative_to: RelativeTo,
-    ) -> Result<InsertCommitOutcome> {
-        let mut editor = graph.to_editor(repo)?;
+    ) -> Result<(SuccessfulRebase, Selector)> {
         let target_selector = match relative_to {
             RelativeTo::Commit(id) => editor.select_commit(id)?,
             RelativeTo::Reference(r) => editor.select_reference(r)?,
         };
 
         let commit = editor.empty_commit()?;
-        let new_id = editor.write_commit(commit, DateMode::CommitterUpdateAuthorUpdate)?;
+        let new_id = editor.new_commit(commit, DateMode::CommitterUpdateAuthorUpdate)?;
 
-        editor.insert(&target_selector, Step::new_pick(new_id), side);
+        let blank_commit_selector = editor.insert(target_selector, Step::new_pick(new_id), side);
 
         let outcome = editor.rebase()?;
-        let mat_output = outcome.materialize()?;
 
-        Ok(InsertCommitOutcome {
-            blank_commit_id: new_id,
-            commit_mapping: mat_output.commit_mapping,
-        })
+        Ok((outcome, blank_commit_selector))
     }
 }
