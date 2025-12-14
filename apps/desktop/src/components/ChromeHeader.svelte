@@ -8,13 +8,16 @@
 	import { SETTINGS_SERVICE } from '$lib/config/appSettingsV2';
 	import { projectDisableCodegen } from '$lib/config/config';
 	import { ircEnabled } from '$lib/config/uiFeatureFlags';
+	import { FILE_SERVICE } from '$lib/files/fileService';
 	import { IRC_SERVICE } from '$lib/irc/ircService.svelte';
 	import { MODE_SERVICE } from '$lib/mode/modeService';
-	import { handleAddProjectOutcome } from '$lib/project/project';
+	import { handleAddProjectOutcome, vscodePath } from '$lib/project/project';
 	import { PROJECTS_SERVICE } from '$lib/project/projectsService';
 	import { ircPath, isWorkspacePath, projectPath } from '$lib/routes/routes.svelte';
+	import { SETTINGS } from '$lib/settings/userSettings';
 	import { SHORTCUT_SERVICE } from '$lib/shortcuts/shortcutService';
 	import { useCreateAiStack } from '$lib/stacks/createAiStack.svelte';
+	import { getEditorUri, URL_SERVICE } from '$lib/utils/url';
 	import { inject } from '@gitbutler/core/context';
 	import { reactive } from '@gitbutler/shared/reactiveUtils.svelte';
 	import {
@@ -45,6 +48,9 @@
 	const settingsService = inject(SETTINGS_SERVICE);
 	const modeService = inject(MODE_SERVICE);
 	const shortcutService = inject(SHORTCUT_SERVICE);
+	const fileService = inject(FILE_SERVICE);
+	const urlService = inject(URL_SERVICE);
+	const userSettings = inject(SETTINGS);
 	const baseReponse = $derived(projectId ? baseBranchService.baseBranch(projectId) : undefined);
 	const base = $derived(baseReponse?.response);
 	const settingsStore = $derived(settingsService.appSettings);
@@ -52,6 +58,25 @@
 	const useCustomTitleBar = $derived(!($settingsStore?.ui.useNativeTitleBar ?? false));
 	const backend = inject(BACKEND);
 	const codegenDisabled = $derived(projectDisableCodegen(projectId));
+
+	// Project action button handlers (same as menu actions)
+	async function openInEditor() {
+		const project = await projectsService.fetchProject(projectId);
+		if (!project) return;
+		urlService.openExternalUrl(
+			getEditorUri({
+				schemeId: $userSettings.defaultCodeEditor.schemeIdentifer,
+				path: [vscodePath(project.path)],
+				searchParams: { windowId: '_blank' }
+			})
+		);
+	}
+
+	async function showInFileManager() {
+		const project = await projectsService.fetchProject(projectId);
+		if (!project) return;
+		await fileService.showFileInFolder(project.path);
+	}
 
 	const mode = $derived(modeService.mode(projectId));
 	const currentMode = $derived(mode.response);
@@ -221,6 +246,27 @@
 					</SelectItem>
 				</OptionsGroup>
 			</Select>
+
+			<!-- Project action buttons -->
+			<Tooltip text="Open in Editor">
+				<Button
+					type="button"
+					kind="ghost"
+					icon="vscode"
+					onclick={openInEditor}
+					testId="chrome-header-open-in-editor"
+				/>
+			</Tooltip>
+			<Tooltip text="Show in File Manager">
+				<Button
+					type="button"
+					kind="ghost"
+					icon="folder"
+					onclick={showInFileManager}
+					testId="chrome-header-show-in-file-manager"
+				/>
+			</Tooltip>
+
 			{#if singleBranchMode}
 				<Tooltip text="Current branch">
 					<div class="chrome-current-branch">

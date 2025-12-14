@@ -258,6 +258,7 @@ pub fn create(
     .resizable(true)
     .title(handle.package_info().name.clone())
     .disable_drag_drop_handler()
+    .decorations(false)
     .min_inner_size(1000.0, 600.0)
     .inner_size(1160.0, 720.0)
     .build()?;

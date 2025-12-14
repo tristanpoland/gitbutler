@@ -6,6 +6,7 @@
 	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import AppUpdater from '$components/AppUpdater.svelte';
+	import CustomTitlebar from '$components/CustomTitlebar.svelte';
 	import FocusCursor from '$components/FocusCursor.svelte';
 	import GlobalModal from '$components/GlobalModal.svelte';
 	import GlobalSettingsMenuAction from '$components/GlobalSettingsMenuAction.svelte';
@@ -177,7 +178,12 @@
 </svelte:head>
 
 <div class="app-root" role="application" oncontextmenu={(e) => !dev && e.preventDefault()}>
-	{@render children()}
+	{#if backend.platformName !== 'macos'}
+		<CustomTitlebar />
+	{/if}
+	<div class="app-content">
+		{@render children()}
+	</div>
 </div>
 <ShareIssueModal />
 <ToastController />
@@ -199,7 +205,14 @@
 <style lang="postcss">
 	.app-root {
 		display: flex;
+		flex-direction: column;
 		height: 100%;
 		cursor: default;
+	}
+
+	.app-content {
+		display: flex;
+		flex: 1;
+		overflow: hidden;
 	}
 </style>

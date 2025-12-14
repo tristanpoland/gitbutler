@@ -17,6 +17,7 @@ pub mod logs;
 pub mod menu;
 pub mod window;
 pub use window::state::{WindowState, event::ChangeForFrontend};
+pub mod window_controls;
 
 pub mod action;
 pub mod askpass;
